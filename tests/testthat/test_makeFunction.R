@@ -13,16 +13,6 @@ test_that("makeAssertion", {
   expect_identical(formals(x), formals(y))
   if (!isNamespaceLoaded("covr"))
     expect_equal(body(x), body(y))
-
-  check_fn_with_dots = function(x, ..., force.fail = FALSE) {
-    if (isTRUE(force.fail)) {
-      return("Forced failure")
-    }
-    TRUE
-  }
-  assert_fn = makeAssertionFunction(check_fn_with_dots, use.namespace = FALSE)
-  expect_identical(assert_fn(1L), 1L)
-  expect_error(assert_fn(1L, force.fail = TRUE), "Forced failure")
 })
 
 test_that("makeTest", {
@@ -73,10 +63,10 @@ test_that("makeX with name for 'x' not 'x'", {
   tchecker = makeTestFunction(checker)
   expect_identical(names(formals(tchecker)), c("foo", "bar"))
   expect_error(tchecker(), 'argument "foo" is missing')
-  expect_identical(tchecker(FALSE), TRUE)
-  expect_identical(tchecker(1L), FALSE)
-  expect_identical(tchecker(NA), FALSE)
-  expect_identical(tchecker(NA, bar = TRUE), TRUE)
+  expect_true(tchecker(FALSE))
+  expect_false(tchecker(1L))
+  expect_false(tchecker(NA))
+  expect_true(tchecker(NA, bar = TRUE))
   expect_error(tchecker(NA, bar = "x"), "'na.ok' must be a flag")
 
   echecker = makeExpectationFunction(checker)
@@ -87,4 +77,25 @@ test_that("makeX with name for 'x' not 'x'", {
   expect_error(echecker(NA), "May not be NA")
   expect_identical(echecker(NA, bar = TRUE), NA)
   expect_error(echecker(NA, bar = "x"), "'na.ok' must be a flag")
+})
+
+test_that("makeXFunction works with named args trailing `...`", {
+  checker = function(object, ..., force.fail = FALSE) {
+    if (isTRUE(force.fail)) return("Forced failure")
+    TRUE
+  }
+
+  achecker = makeAssertionFunction(checker)
+  expect_error(achecker(), 'argument "object" is missing')
+  expect_identical(achecker("foo"), "foo")
+  expect_error(achecker("foo", force.fail = TRUE), ".+foo.+Forced failure")
+
+  tchecker = makeTestFunction(checker)
+  expect_true(tchecker("foo"))
+  expect_false(tchecker("foo", force.fail = TRUE))
+
+  echecker = makeExpectationFunction(checker)
+  expect_error(echecker(), 'argument "object" is missing')
+  expect_identical(echecker("foo"), "foo")
+  expect_error(echecker("foo", force.fail = TRUE), ".+foo.+Forced failure")
 })
